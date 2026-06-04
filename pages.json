@@ -1,0 +1,54 @@
+{
+	"easycom": {
+		"autoscan": true,
+		"custom": {
+			"^uni-(.*)": "@/uni_modules/uni-$1/components/uni-$1/uni-$1.vue"
+		}
+	},
+	"pages": [
+		{ "path": "pages/index/index", "style": { "navigationBarTitleText": "过磅对账", "navigationStyle": "custom" } },
+		{ "path": "pages/mine/mine", "style": { "navigationBarTitleText": "我的" } },
+		{ "path": "pages/auth/login", "style": { "navigationBarTitleText": "手机号登录" } },
+		{ "path": "pages/project/create", "style": { "navigationBarTitleText": "创建项目" } },
+		{ "path": "pages/project/spec", "style": { "navigationBarTitleText": "项目规格" } },
+		{ "path": "pages/project/fee", "style": { "navigationBarTitleText": "项目费用" } },
+		{ "path": "pages/project/allocate", "style": { "navigationBarTitleText": "资金分配" } },
+		{ "path": "pages/project/done", "style": { "navigationBarTitleText": "项目创建成功" } },
+		{ "path": "pages/driver/search", "style": { "navigationBarTitleText": "我是司机" } },
+		{ "path": "pages/driver/project", "style": { "navigationBarTitleText": "项目操作" } },
+		{ "path": "pages/driver/upload", "style": { "navigationBarTitleText": "上传磅单" } },
+		{ "path": "pages/driver/pay", "style": { "navigationBarTitleText": "支付服务费" } },
+		{ "path": "pages/join/join", "style": { "navigationBarTitleText": "加入项目" } },
+		{ "path": "pages/join/apply", "style": { "navigationBarTitleText": "提交申请" } },
+		{ "path": "pages/join/joined", "style": { "navigationBarTitleText": "已加入的项目" } },
+		{ "path": "pages/join/joinedDetail", "style": { "navigationBarTitleText": "项目工作台" } },
+		{ "path": "pages/verify/list", "style": { "navigationBarTitleText": "待验票" } },
+		{ "path": "pages/verify/detail", "style": { "navigationBarTitleText": "验票" } },
+		{ "path": "pages/verify/verified", "style": { "navigationBarTitleText": "已验票" } },
+		{ "path": "pages/print/print", "style": { "navigationBarTitleText": "对账单" } },
+		{ "path": "pages/print/detail", "style": { "navigationBarTitleText": "对账明细" } },
+		{ "path": "pages/mine/projects", "style": { "navigationBarTitleText": "我的项目" } },
+		{ "path": "pages/mine/projectDetail", "style": { "navigationBarTitleText": "项目管理" } },
+		{ "path": "pages/mine/applications", "style": { "navigationBarTitleText": "收到的申请" } },
+		{ "path": "pages/mine/score", "style": { "navigationBarTitleText": "我的评分" } },
+		{ "path": "pages/mine/piecework", "style": { "navigationBarTitleText": "我的计件" } },
+		{ "path": "pages/mine/vehicles", "style": { "navigationBarTitleText": "我的车辆" } },
+		{ "path": "pages/mine/service", "style": { "navigationBarTitleText": "联系客服" } }
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "过磅对账",
+		"navigationBarBackgroundColor": "#4ADE80",
+		"backgroundColor": "#F5F7FA"
+	},
+	"tabBar": {
+		"color": "#999",
+		"selectedColor": "#4ADE80",
+		"backgroundColor": "#FFFFFF",
+		"borderStyle": "black",
+		"list": [
+			{ "pagePath": "pages/index/index", "text": "首页", "iconPath": "static/tabbar/home.png", "selectedIconPath": "static/tabbar/home_a.png" },
+			{ "pagePath": "pages/mine/mine", "text": "我的", "iconPath": "static/tabbar/mine.png", "selectedIconPath": "static/tabbar/mine_a.png" }
+		]
+	}
+}
