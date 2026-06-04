@@ -170,12 +170,11 @@ Storage 键前缀 `gb_*`：
 
 ## Git 推送（自动化）
 
-用户说 **推送到 git / 推送代码 / 同步 GitHub** 时：
+用户说 **推送到 git / 推送代码 / 同步 GitHub** 时：加载个人 skill `git-push`（`~/.cursor/skills/git-push/SKILL.md`）。
 
-1. 加载 skill：`.cursor/skills/github-push/SKILL.md`
-2. 在项目根执行：`.cursor/skills/github-push/scripts/push.ps1`
-3. 远程：`https://github.com/zhengqiuyun1990-eng/wxguobang.git`，分支 `master`
-4. 本机需代理时常用端口 `7897`（脚本会自动探测）；勿向用户索要 GitHub 密码
+- 本项目远程配置：`.cursor/git-push.json`（已指向 `zhengqiuyun1990-eng/wxguobang`）
+- 执行：`powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.cursor\skills\git-push\scripts\push.ps1"`
+- 无配置文件时：向用户索要仓库地址并写入 `.cursor/git-push.json`，其他项目同理
 
 ## 已知注意点
 
