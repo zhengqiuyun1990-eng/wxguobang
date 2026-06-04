@@ -168,6 +168,15 @@ Storage 键前缀 `gb_*`：
 - 命令行构建若存在，输出在 `unpackage/dist/`
 - 用户系统为 Windows；路径含中文「过磅小程序」时注意终端编码
 
+## Git 推送（自动化）
+
+用户说 **推送到 git / 推送代码 / 同步 GitHub** 时：
+
+1. 加载 skill：`.cursor/skills/github-push/SKILL.md`
+2. 在项目根执行：`.cursor/skills/github-push/scripts/push.ps1`
+3. 远程：`https://github.com/zhengqiuyun1990-eng/wxguobang.git`，分支 `master`
+4. 本机需代理时常用端口 `7897`（脚本会自动探测）；勿向用户索要 GitHub 密码
+
 ## 已知注意点
 
 - 项目编号：远端返回 `id` 时 `no` 可能为远端 ID；二维码与司机入口使用 `project_id=` 该编号
