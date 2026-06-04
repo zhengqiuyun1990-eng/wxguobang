@@ -1,0 +1,24 @@
+# Netlify：推送到 Git 后自动构建 H5 并发布
+# 文档：https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+  command = "npm ci && npm run build:h5"
+  # build:h5 = sync-src.js (Linux) + uni build
+  publish = "dist/build/h5"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+# API 代理（须在 SPA 兜底规则之前）
+[[redirects]]
+  from = "/api/*"
+  to = "https://wa15.shangyundian.cn/api/:splat"
+  status = 200
+  force = true
+
+# SPA 路由：刷新任意路径回到 index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

@@ -38,7 +38,7 @@
 			<text class="s-r">可分配金额：¥{{ allocatableAmount.toFixed(2) }}</text>
 		</view>
 
-		<button class="primary" :disabled="submitting" @tap="finish">{{ submitting ? '创建中...' : '创建项目' }}</button>
+		<button class="primary" :disabled="submitting" @tap="finish">{{ submitting ? '提交中...' : '提交分配并完成' }}</button>
 	</view>
 </template>
 
@@ -47,7 +47,13 @@ import { db, draft } from '@/utils/store.js'
 import { api } from '@/utils/request.js'
 export default {
 	data() { return { d: draft.project, submitting: false } },
-	onShow() { this.d = draft.project },
+	onShow() {
+		this.d = draft.project
+		if (!this.d || !this.d.pendingOrder || !this.d.pendingOrder.id) {
+			uni.showToast({ title: '请先完成创建与支付', icon: 'none' })
+			setTimeout(() => uni.redirectTo({ url: '/pages/project/fee' }), 800)
+		}
+	},
 	computed: {
 		totalPct() {
 			const a = this.d && this.d.allocate
@@ -65,30 +71,20 @@ export default {
 		async finish() {
 			if (this.submitting) return
 			if (!this.d) return uni.showToast({ title: '数据已丢失，请重新创建', icon: 'none' })
-			if (!this.d.name) return uni.showToast({ title: '卸货单位名称缺失', icon: 'none' })
-			if (!this.d.specs || this.d.specs.length === 0) return uni.showToast({ title: '请设置规格', icon: 'none' })
 			if (this.totalPct > 100) return uni.showToast({ title: '分配比例不能超过 100%', icon: 'none' })
+			const po = this.d.pendingOrder
+			if (!po || !po.id) return uni.showToast({ title: '请先完成创建与支付', icon: 'none' })
 
 			const u = db.currentUser()
-			const payload = {
-				title: this.d.name,
-				shipper_company: this.d.shipperCompany || '',
-				receiver_company: this.d.receiverCompany || '',
-				driver_fee: Number(this.d.driverFee || 0),
-				spec: JSON.stringify(this.d.specs),
-				master_info: this.d.owners.filter(o => o.phone).map(o => ({ name: o.name, phone: o.phone })),
-				shipper_info: this.d.shippers.filter(o => o.phone).map(o => ({ name: o.name || '发货人员', phone: o.phone })),
-				receiver_info: this.d.receivers.filter(o => o.phone).map(o => ({ name: o.name || '收货人员', phone: o.phone })),
-				allocate: JSON.stringify(this.d.allocate)
-			}
 			this.submitting = true
-			uni.showLoading({ title: '创建中...' })
+			uni.showLoading({ title: '提交分配...' })
 			try {
-				const res = await api.createProject(payload)
-				const remoteId = res && res.id
-				const no = remoteId || db.nextProjectNo()
+				await api.allocateProject(po.id, this.d.allocate)
+
+				const remoteId = po.id
+				const no = po.order_no || remoteId
 				const project = {
-					id: remoteId ? 'P' + remoteId : 'P' + Date.now(),
+					id: 'P' + remoteId,
 					remoteId,
 					no,
 					name: this.d.name,

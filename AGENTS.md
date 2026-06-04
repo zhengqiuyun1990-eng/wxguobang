@@ -168,6 +168,12 @@ Storage 键前缀 `gb_*`：
 - 命令行构建若存在，输出在 `unpackage/dist/`
 - 用户系统为 Windows；路径含中文「过磅小程序」时注意终端编码
 
+## Netlify 部署（H5）
+
+- 配置见 `netlify.toml`、`NETLIFY.md`
+- 构建：`npm run build:h5`（Netlify Linux）；本地 Windows 可用 `npm run build:h5:win`
+- 发布目录：`dist/build/h5`（非 `unpackage/`）
+
 ## Git 推送（自动化）
 
 用户说 **推送到 git / 推送代码 / 同步 GitHub** 时：加载个人 skill `git-push`（`~/.cursor/skills/git-push/SKILL.md`）。

@@ -61,6 +61,7 @@
 <script>
 import { db } from '@/utils/store.js'
 import { api, uploadFile } from '@/utils/request.js'
+import { parseProjectRow } from '@/utils/api-util.js'
 import { getVehicles, addVehicle, removeVehicle } from '@/utils/vehicles.js'
 
 export default {
@@ -84,9 +85,10 @@ export default {
 		if (this.projectId) {
 			try {
 				const res = await api.projectInfo(this.projectId)
-				if (res && res.row) {
-					this.fee = Number(res.row.driver_fee) || this.fee
-					this.projectName = res.row.title || ''
+				const row = parseProjectRow(res && res.row ? res.row : res)
+				if (row) {
+					this.fee = row.driverFee || this.fee
+					this.projectName = row.title || ''
 				}
 			} catch (e) { /* 后端不可用时用传入的 fee */ }
 		}

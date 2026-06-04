@@ -61,6 +61,7 @@
 
 <script>
 import { api, imgUrl, UPLOAD_BASE } from '@/utils/request.js'
+import { parseProjectRow } from '@/utils/api-util.js'
 export default {
 	data() { return { pid: '', project: null } },
 	onLoad(q) { this.pid = q.id },
@@ -78,7 +79,8 @@ export default {
 		go(type) {
 			if (type === 'ship' && this.project.hair) return uni.showToast({ title: '发货单已提交', icon: 'none' })
 			if (type === 'recv' && this.project.receive) return uni.showToast({ title: '收货单已提交', icon: 'none' })
-			uni.navigateTo({ url: `/pages/driver/upload?pid=${this.project.id}&type=${type}` })
+			const id = this.pid || (this.project && this.project.id)
+			uni.navigateTo({ url: `/pages/driver/upload?project_id=${id}&type=${type}` })
 		},
 		preview(path) {
 			if (!path) return

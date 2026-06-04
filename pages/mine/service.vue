@@ -2,12 +2,12 @@
 	<view class="page">
 		<view class="card">
 			<text class="t">客服热线</text>
-			<text class="v">400-888-0000</text>
+			<text class="v">{{ hotline }}</text>
 			<button class="primary" @tap="call">立即拨打</button>
 		</view>
 		<view class="card">
 			<text class="t">在线客服</text>
-			<text class="s">工作日 9:00 - 18:00</text>
+			<text class="s">{{ serviceHours }}</text>
 			<button class="ghost" @tap="online">联系在线客服</button>
 		</view>
 		<view class="card">
@@ -21,9 +21,31 @@
 </template>
 
 <script>
+import { loadSiteConfig } from '@/utils/request.js'
+
 export default {
+	data() {
+		return {
+			hotline: '400-888-0000',
+			serviceHours: '工作日 9:00 - 18:00'
+		}
+	},
+	onShow() {
+		const cfg = loadSiteConfig()
+		if (!cfg) return
+		const row = cfg.row || cfg
+		if (row.hotline || row.service_phone || row.tel) {
+			this.hotline = row.hotline || row.service_phone || row.tel
+		}
+		if (row.service_hours || row.work_time) {
+			this.serviceHours = row.service_hours || row.work_time
+		}
+	},
 	methods: {
-		call() { uni.makePhoneCall({ phoneNumber: '4008880000' }) },
+		call() {
+			const num = String(this.hotline).replace(/[^\d]/g, '')
+			uni.makePhoneCall({ phoneNumber: num || '4008880000' })
+		},
 		online() { uni.showToast({ title: '已连接在线客服', icon: 'success' }) }
 	}
 }

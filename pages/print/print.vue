@@ -37,7 +37,7 @@ export default {
 				name: p.title,
 				shipperCompany: p.shipper_company || '',
 				receiverCompany: p.receiver_company || '',
-				driverFee: Number(p.driver_fee) || 0,
+				driverFee: Number(p.price ?? p.driver_fee) || 0,
 				owners: (p.master || []).map(m => ({ name: m.name, phone: m.phone })),
 				ownerId: u.id
 			}))
