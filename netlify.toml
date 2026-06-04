@@ -2,13 +2,11 @@
 # 文档：https://docs.netlify.com/configure-builds/file-based-configuration/
 
 [build]
-  command = "npm ci && npm run build:h5"
-  # build:h5 = sync-src.js (Linux) + uni build
+  command = "npm ci --legacy-peer-deps && npm run build:h5"
   publish = "dist/build/h5"
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--legacy-peer-deps"
 
 # API 代理（须在 SPA 兜底规则之前）
 [[redirects]]
