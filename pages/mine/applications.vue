@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="empty" v-if="list.length === 0"><text>暂无收到的申请</text></view>
 		<view class="card" v-for="a in list" :key="a.id">

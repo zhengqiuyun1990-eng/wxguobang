@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="step">{{ role === 'ship' ? '发货过磅人 申请' : '收货过磅人 申请' }}</view>
 
@@ -70,7 +70,7 @@ export default {
 .page { padding: 24rpx; }
 .step { font-size: 24rpx; color:#16A34A; padding: 8rpx 16rpx; background:#ECFDF5; display:inline-block; border-radius: 999px; }
 .card { background:#fff; border-radius: 20rpx; padding: 0 28rpx; margin-top: 24rpx; }
-.row { display:flex; align-items:center; padding: 28rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.row { display:flex; align-items:center; padding: 28rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .row:last-child { border-bottom: none; }
 .lbl { width: 160rpx; font-size: 28rpx; color:#333; }
 .ipt { flex:1; font-size: 28rpx; color:#111; }

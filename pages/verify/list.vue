@@ -1,40 +1,57 @@
-<template>
+﻿<template>
 	<view class="page">
-		<view class="empty" v-if="list.length === 0"><text>暂无待验票磅单</text></view>
-		<view class="card" v-for="b in list" :key="b.id" @tap="enter(b)">
+		<view class="empty" v-if="!loading && !pending"><text>暂无待核对磅单</text></view>
+		<view class="card" v-if="pending" @tap="enter">
 			<view class="head">
-				<text class="plate">{{ b.plate }}</text>
+				<text class="plate">{{ pending.number || '项目磅单' }}</text>
 				<text class="tag" :class="role">{{ role === 'ship' ? '发货' : '收货' }}</text>
-				<text class="time">{{ formatTime(b.createdAt) }}</text>
 			</view>
 			<view class="nums">
-				<text>毛 {{ display(b).gross }}t</text>
-				<text>皮 {{ display(b).tare }}t</text>
-				<text>净 {{ display(b).net }}t</text>
+				<text>毛 {{ pending.gross }}t</text>
+				<text>皮 {{ pending.tare }}t</text>
+				<text>净 {{ pending.net }}t</text>
 			</view>
-			<text class="driver">司机 {{ b.driverName }} · {{ b.driverPhone }}</text>
+			<text class="tip">点击核对数据</text>
 		</view>
 	</view>
 </template>
 
 <script>
-import { db } from '@/utils/store.js'
+import { requireLogin } from '@/utils/store.js'
+import { api } from '@/utils/request.js'
+import { pickWeightBlock, isBlockPending, remoteProjectId } from '@/utils/api-util.js'
+
 export default {
-	data() { return { pid: '', role: '', list: [] } },
-	onLoad(q) { this.pid = q.pid; this.role = q.role },
+	data() { return { pid: '', role: '', pending: null, loading: true } },
+	onLoad(q) {
+		this.pid = remoteProjectId(q.pid || q.project_id || '')
+		this.role = q.role || 'ship'
+	},
 	onShow() {
-		const bills = db.billsOfProject(this.pid)
-		this.list = bills.filter(b => {
-			if (this.role === 'ship') return b.type === 'ship' && !b.shipVerified
-			else return !!b.recv && !b.recvVerified
-		}).reverse()
+		if (!requireLogin()) return
+		this.load()
 	},
 	methods: {
-		display(b) { return this.role === 'ship' ? b : b.recv },
-		enter(b) { uni.navigateTo({ url: `/pages/verify/detail?bid=${b.id}&role=${this.role}` }) },
-		formatTime(t) {
-			const d = new Date(t)
-			return `${d.getMonth()+1}-${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+		async load() {
+			if (!this.pid) return
+			this.loading = true
+			try {
+				const res = await api.projectInfo(this.pid)
+				const row = res && (res.row || res)
+				const block = this.role === 'ship' ? row && row.hair : row && row.receive
+				if (block && isBlockPending(block)) {
+					this.pending = pickWeightBlock(row, this.role)
+				} else {
+					this.pending = null
+				}
+			} catch (e) {
+				this.pending = null
+			} finally {
+				this.loading = false
+			}
+		},
+		enter() {
+			uni.navigateTo({ url: `/pages/verify/detail?project_id=${this.pid}&role=${this.role}` })
 		}
 	}
 }
@@ -49,7 +66,6 @@ export default {
 .tag { font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 999px; margin-left: 16rpx; }
 .tag.ship { background:#ECFDF5; color:#16A34A; }
 .tag.recv { background:#DBEAFE; color:#2563EB; }
-.time { color:#999; font-size: 22rpx; margin-left:auto; }
 .nums { display:flex; gap: 24rpx; padding: 12rpx 0; color: #333; font-size: 26rpx; }
-.driver { color:#888; font-size: 22rpx; }
+.tip { color:#16A34A; font-size: 22rpx; }
 </style>

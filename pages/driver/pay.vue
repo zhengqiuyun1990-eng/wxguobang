@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="amount-card">
 			<text class="lbl">应支付</text>
@@ -29,11 +29,12 @@
 </template>
 
 <script>
-import { db } from '@/utils/store.js'
+import { db, requireLogin } from '@/utils/store.js'
 import { api, uploadFile } from '@/utils/request.js'
 export default {
 	data() { return { form: {}, method: 'wechat', pid: '', billImg: '', placeImg: '', fee: 10 } },
 	onLoad(q) {
+		if (!requireLogin()) return
 		const data = JSON.parse(decodeURIComponent(q.data || '{}'))
 		this.form = data
 		this.billImg = data.billImg || ''
@@ -83,16 +84,26 @@ export default {
 						recv: null
 					})
 				}
-				uni.showModal({
-					title: this.fee > 0 ? '缴费成功' : '提交成功',
-					content: '磅单已上传',
-					confirmText: '返回首页',
-					cancelText: '继续操作',
-					success: (r) => {
-						if (r.confirm) uni.switchTab({ url: '/pages/index/index' })
-						else uni.navigateBack({ delta: 2 })
-					}
-				})
+				if (this.form.type === 'recv') {
+					uni.showToast({ title: '上传成功，请评分', icon: 'success' })
+					setTimeout(() => {
+						uni.redirectTo({ url: `/pages/project/rate?project_id=${this.pid}` })
+					}, 600)
+				} else {
+					uni.showModal({
+						title: this.fee > 0 ? '缴费成功' : '发货单已上传',
+						content: '请继续上传收货磅单',
+						confirmText: '去上传收货单',
+						cancelText: '稍后',
+						success: (r) => {
+							if (r.confirm) {
+								uni.redirectTo({ url: `/pages/driver/upload?project_id=${this.pid}&type=recv` })
+							} else {
+								uni.navigateTo({ url: `/pages/driver/project?id=${this.pid}` })
+							}
+						}
+					})
+				}
 			} catch (e) {
 				uni.hideLoading()
 			}
@@ -108,12 +119,12 @@ export default {
 .amt { font-size: 84rpx; font-weight: 800; margin-top: 8rpx; }
 .sub { font-size: 22rpx; opacity:.85; margin-top: 8rpx; }
 .card { background:#fff; border-radius: 20rpx; padding: 0 28rpx; margin-top: 24rpx; }
-.row { display:flex; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.row { display:flex; padding: 24rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .row:last-child { border-bottom: none; }
 .row .lbl { width: 160rpx; color:#666; font-size: 26rpx; }
 .val { flex:1; color:#111; font-size: 28rpx; font-weight: 600; }
 .pay-method { background:#fff; border-radius: 20rpx; margin-top: 24rpx; }
-.pm { display:flex; align-items:center; padding: 28rpx; border-bottom: 1rpx solid #f5f5f5; }
+.pm { display:flex; align-items:center; padding: 28rpx; border-bottom: 1rpx solid #F5F7FA; }
 .pm:last-child { border-bottom: none; }
 .pi { font-size: 32rpx; }
 .pt { flex:1; padding-left: 20rpx; font-size: 28rpx; color:#111; }

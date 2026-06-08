@@ -1,83 +1,94 @@
-<template>
-	<view class="page" v-if="bill">
-		<view class="banner" :class="role">{{ role === 'ship' ? '发货验票' : '收货验票' }}</view>
+﻿<template>
+	<view class="page" v-if="weights">
+		<view class="banner" :class="role">{{ role === 'ship' ? '发货站核对' : '收货站核对' }}</view>
 
-		<view class="card">
-			<view class="ct">司机上传磅单</view>
-			<image v-if="src.billImg" :src="src.billImg" mode="aspectFill" class="img" />
-			<view v-else class="ph">无磅单图片</view>
+		<view class="card" v-if="weights.weight_pic">
+			<view class="ct">磅单照片</view>
+			<image :src="imgUrl(weights.weight_pic)" mode="aspectFill" class="img" />
 		</view>
 
 		<view class="card">
-			<view class="row"><text class="lbl">车号</text><text class="val">{{ bill.plate }}</text></view>
-			<view class="row"><text class="lbl">毛重</text><text class="val">{{ src.gross }} t</text></view>
-			<view class="row"><text class="lbl">皮重</text><text class="val">{{ src.tare }} t</text></view>
-			<view class="row"><text class="lbl">净重</text><text class="val">{{ src.net }} t</text></view>
-			<view class="row" v-if="role==='recv' && src.spec"><text class="lbl">规格</text><text class="val">{{ src.spec }}</text></view>
-			<view class="row"><text class="lbl">司机</text><text class="val">{{ bill.driverName }} · {{ bill.driverPhone }}</text></view>
+			<view class="row"><text class="lbl">车号</text><text class="val">{{ weights.number }}</text></view>
+			<view class="row"><text class="lbl">毛重</text><text class="val">{{ weights.gross }} t</text></view>
+			<view class="row"><text class="lbl">皮重</text><text class="val">{{ weights.tare }} t</text></view>
+			<view class="row"><text class="lbl">净重</text><text class="val">{{ weights.net }} t</text></view>
 		</view>
 
 		<view class="actions">
 			<button class="ghost" @tap="correct">数据有误，纠错</button>
-			<button class="primary" @tap="confirm">已对账</button>
+			<button class="primary" :disabled="submitting" @tap="confirm">{{ submitting ? '提交中...' : '已对账' }}</button>
 		</view>
 	</view>
 </template>
 
 <script>
-import { db } from '@/utils/store.js'
+import { requireLogin } from '@/utils/store.js'
+import { api, imgUrl } from '@/utils/request.js'
+import { pickWeightBlock, remoteProjectId } from '@/utils/api-util.js'
+
 export default {
-	data() { return { bill: null, role: '' } },
-	computed: {
-		src() { return this.role === 'ship' ? this.bill : this.bill.recv }
+	data() { return { projectId: '', role: '', weights: null, submitting: false } },
+	onLoad(q) {
+		this.projectId = remoteProjectId(q.project_id || q.pid || '')
+		this.role = q.role || 'ship'
 	},
-	onLoad(q) { this.role = q.role; this.bill = db.getBill(q.bid) },
+	onShow() {
+		if (!requireLogin()) return
+		this.load()
+	},
 	methods: {
-		confirm() {
-			const u = db.currentUser()
-			const project = db.getProject(this.bill.projectId)
-			const patch = {}
-			if (this.role === 'ship') {
-				patch.shipVerified = true; patch.shipVerifiedBy = u.id; patch.shipVerifiedAt = Date.now()
-				uni.showToast({ title: '矿发数量已确定', icon: 'success' })
-				// 给过磅人加分+计件
-				db.updateUser({ score: u.score + 1, totalPiece: u.totalPiece + project.allocate.ship })
-			} else {
-				patch.recvVerified = true; patch.recvVerifiedBy = u.id; patch.recvVerifiedAt = Date.now()
-				uni.showToast({ title: '卸货数量已确定', icon: 'success' })
-				db.updateUser({ score: u.score + 1, totalPiece: u.totalPiece + project.allocate.recv })
+		imgUrl,
+		async load() {
+			if (!this.projectId) return
+			try {
+				const res = await api.projectInfo(this.projectId)
+				const row = res && (res.row || res)
+				this.weights = pickWeightBlock(row, this.role)
+				if (!this.weights) uni.showToast({ title: '暂无待核对数据', icon: 'none' })
+			} catch (e) {
+				uni.showToast({ title: '加载失败', icon: 'none' })
 			}
-			db.updateBill(this.bill.id, patch)
-			setTimeout(() => uni.navigateBack(), 700)
+		},
+		payloadFrom(w) {
+			return {
+				project_id: this.projectId,
+				gross: String(w.gross),
+				tare: String(w.tare),
+				net: String(w.net)
+			}
+		},
+		async submitCorrect(w) {
+			this.submitting = true
+			uni.showLoading({ title: '提交中...' })
+			try {
+				const payload = this.payloadFrom(w)
+				if (this.role === 'ship') await api.correctHairInfo(payload)
+				else await api.correctReceiveInfo(payload)
+				uni.hideLoading()
+				uni.showToast({ title: '核对成功', icon: 'success' })
+				setTimeout(() => uni.navigateBack(), 700)
+			} catch (e) {
+				uni.hideLoading()
+			} finally {
+				this.submitting = false
+			}
+		},
+		confirm() {
+			if (!this.weights) return
+			this.submitCorrect(this.weights)
 		},
 		correct() {
 			uni.showModal({
-				title: '纠错', content: '纠错后将由您直接重新填写正确数据，本单计为纠错',
-				success: r => { if (r.confirm) this.doCorrect() }
-			})
-		},
-		doCorrect() {
-			// 简化：弹出输入新净重；实际可跳到表单
-			uni.showModal({
-				title: '请输入正确净重(t)', editable: true, placeholderText: '正确净重',
-				success: r => {
+				title: '纠错',
+				content: '请输入正确净重(t)',
+				editable: true,
+				placeholderText: '净重',
+				success: async (r) => {
 					if (!r.confirm || !r.content) return
 					const newNet = Number(r.content)
-					if (isNaN(newNet)) return
-					const u = db.currentUser()
-					const patch = {}
-					if (this.role === 'ship') {
-						patch.net = newNet; patch.shipCorrected = true
-						patch.shipVerified = true; patch.shipVerifiedBy = u.id; patch.shipVerifiedAt = Date.now()
-					} else {
-						patch.recv = { ...this.bill.recv, net: newNet }
-						patch.recvCorrected = true
-						patch.recvVerified = true; patch.recvVerifiedBy = u.id; patch.recvVerifiedAt = Date.now()
-					}
-					db.updateBill(this.bill.id, patch)
-					db.updateUser({ score: u.score + 5 }) // 纠错+5
-					uni.showToast({ title: '已纠错并验票', icon: 'success' })
-					setTimeout(() => uni.navigateBack(), 700)
+					if (isNaN(newNet)) return uni.showToast({ title: '请输入有效数字', icon: 'none' })
+					const w = { ...this.weights, net: newNet }
+					await this.submitCorrect(w)
 				}
 			})
 		}
@@ -93,8 +104,7 @@ export default {
 .card { background:#fff; border-radius: 20rpx; margin-top: 24rpx; padding: 24rpx 28rpx; }
 .ct { font-size: 26rpx; color:#666; margin-bottom: 16rpx; }
 .img { width: 100%; height: 360rpx; border-radius: 16rpx; }
-.ph { height: 200rpx; background:#F5F7FA; border-radius: 16rpx; display:flex; align-items:center; justify-content:center; color:#999; }
-.row { display:flex; padding: 22rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.row { display:flex; padding: 22rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .row:last-child { border-bottom: none; }
 .row .lbl { width: 160rpx; color:#666; font-size: 26rpx; }
 .val { flex:1; color:#111; font-size: 28rpx; font-weight: 600; }

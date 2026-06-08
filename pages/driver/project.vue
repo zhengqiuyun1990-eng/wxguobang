@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page" v-if="project">
 		<view class="hd">
 			<text class="hd-name">{{ project.title }}</text>
@@ -8,7 +8,7 @@
 		<!-- 发货单 -->
 		<view class="sec">
 			<view class="sec-hd">
-				<text class="sec-t">📤 发货磅单</text>
+				<text class="sec-t">发货磅单</text>
 				<text class="sec-tag ok" v-if="project.hair">已上传</text>
 				<text class="sec-tag wait" v-else>未上传</text>
 			</view>
@@ -34,7 +34,7 @@
 		<!-- 收货单 -->
 		<view class="sec">
 			<view class="sec-hd">
-				<text class="sec-t">📥 收货磅单</text>
+				<text class="sec-t">收货磅单</text>
 				<text class="sec-tag ok" v-if="project.receive">已上传</text>
 				<text class="sec-tag wait" v-else>未上传</text>
 			</view>
@@ -60,11 +60,15 @@
 </template>
 
 <script>
-import { api, imgUrl, UPLOAD_BASE } from '@/utils/request.js'
+import { requireLogin } from '@/utils/store.js'
+import { api, imgUrl } from '@/utils/request.js'
 export default {
 	data() { return { pid: '', project: null } },
-	onLoad(q) { this.pid = q.id },
-	onShow() { this.loadDetail() },
+	onLoad(q) { this.pid = q.id || q.project_id || '' },
+	onShow() {
+		if (!requireLogin()) return
+		this.loadDetail()
+	},
 	methods: {
 		imgUrl,
 		async loadDetail() {
@@ -78,7 +82,8 @@ export default {
 		go(type) {
 			if (type === 'ship' && this.project.hair) return uni.showToast({ title: '发货单已提交', icon: 'none' })
 			if (type === 'recv' && this.project.receive) return uni.showToast({ title: '收货单已提交', icon: 'none' })
-			uni.navigateTo({ url: `/pages/driver/upload?pid=${this.project.id}&type=${type}` })
+			const id = this.pid || (this.project && this.project.id)
+			uni.navigateTo({ url: `/pages/driver/upload?project_id=${id}&type=${type}` })
 		},
 		preview(path) {
 			if (!path) return
@@ -94,7 +99,7 @@ export default {
 .hd-name { font-size: 32rpx; font-weight: 700; color:#111; display:block; }
 .hd-no { font-size: 24rpx; color:#16A34A; margin-top: 6rpx; display:block; }
 .actions { margin-top: 24rpx; background:#fff; border-radius: 20rpx; }
-.action { display:flex; align-items:center; padding: 28rpx; border-bottom: 1rpx solid #f5f5f5; }
+.action { display:flex; align-items:center; padding: 28rpx; border-bottom: 1rpx solid #F5F7FA; }
 .action:last-child { border-bottom: none; }
 .icon { width: 80rpx; height: 80rpx; border-radius: 20rpx; display:flex; align-items:center; justify-content:center; font-size: 36rpx; }
 .info { flex:1; padding-left: 24rpx; }
@@ -103,7 +108,7 @@ export default {
 .arr { color:#ccc; font-size: 36rpx; }
 
 .sec { background:#fff; border-radius: 20rpx; padding: 24rpx 28rpx; margin-top: 24rpx; }
-.sec-hd { display:flex; align-items:center; padding-bottom: 16rpx; border-bottom: 1rpx solid #f5f5f5; }
+.sec-hd { display:flex; align-items:center; padding-bottom: 16rpx; border-bottom: 1rpx solid #F5F7FA; }
 .sec-t { flex:1; font-size: 28rpx; font-weight: 700; color:#111; }
 .sec-tag { font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 999px; }
 .sec-tag.ok { background:#ECFDF5; color:#16A34A; }

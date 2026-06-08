@@ -1,7 +1,7 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="hero">
-			<text class="hero-icon">🚚</text>
+			<view class="hero-icon">运</view>
 			<text class="hero-title">司机上传磅单</text>
 			<text class="hero-sub">扫码或输入项目编号，进入磅单上传</text>
 		</view>
@@ -13,7 +13,7 @@
 
 		<view class="divider"><text class="divider-text">或</text></view>
 
-		<button class="scan-btn" @tap="scan">📷 扫码进入项目</button>
+		<button class="scan-btn gb-btn-ghost" @tap="scan">扫码进入项目</button>
 	</view>
 </template>
 

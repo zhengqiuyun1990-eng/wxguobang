@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="ok">✓</view>
 		<text class="title">项目创建成功</text>

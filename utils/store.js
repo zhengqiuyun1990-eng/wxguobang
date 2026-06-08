@@ -21,7 +21,10 @@ export const db = {
 	currentUser() { return get(KEYS.USER, null) },
 	setCurrentUser(u) { set(KEYS.USER, u) },
 	logout() { uni.removeStorageSync(KEYS.USER) },
-	isLogged() { return !!get(KEYS.USER, null) },
+	isLogged() {
+		const u = get(KEYS.USER, null)
+		return !!(u && u.token)
+	},
 
 	allUsers() { return get(KEYS.USERS, []) },
 	upsertUser(u) {
@@ -137,7 +140,7 @@ export function rateByScore(score) {
 	return { star, rate: map[star] || 1.0 }
 }
 
-// 守卫：未登录跳到登录页
+// 守卫：未登录或无 token 跳到登录页
 export function requireLogin() {
 	if (!db.isLogged()) {
 		uni.navigateTo({ url: '/pages/auth/login' })
@@ -146,10 +149,38 @@ export function requireLogin() {
 	return true
 }
 
+/** 登录成功：apiData 为 request 解包后的 data，即 { token } */
+export function applyLoginUser(phone, apiData) {
+	const token = (apiData && apiData.token) || ''
+	const row = (apiData && apiData.user) || {}
+	const u = {
+		id: row.id ? 'U' + row.id : 'U' + Date.now(),
+		remoteUid: row.id != null ? Number(row.id) : undefined,
+		phone,
+		nickname: row.nickname || row.name || ('用户' + phone.slice(-4)),
+		token,
+		plate: row.plate || '',
+		score: row.score != null ? row.score : 2000,
+		totalPiece: row.totalPiece || row.total_piece || 0,
+		createdAt: Date.now()
+	}
+	db.setCurrentUser(u)
+	db.upsertUser(u)
+	return u
+}
+
 // 项目创建过程的临时草稿（跨页面）
 export const draft = {
 	project: null,
-	reset() { this.project = { name: '', shipperCompany: '', receiverCompany: '', driverFee: 10, shippers: [], receivers: [], owners: [], specs: [], invoiceNeed: false, allocate: { ship: 40, recv: 40, owner: 20 } } }
+	reset() {
+		this.project = {
+			name: '', shipperCompany: '', receiverCompany: '', driverFee: 10,
+			shippers: [], receivers: [], owners: [], specs: [],
+			invoiceNeed: false, invoiceTitle: '', invoiceNo: '',
+			allocate: { ship: 40, recv: 40, owner: 20 },
+			pendingOrder: null
+		}
+	}
 }
 
 // 通用：种入演示数据

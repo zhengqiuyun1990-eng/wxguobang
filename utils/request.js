@@ -1,6 +1,32 @@
-// 统一请求封装
+// 统一请求封装（对齐 Apifox：form + Header token）
+import { isProjectPaid, sleep } from '@/utils/api-util.js'
+
 export const BASE_URL = 'https://wa15.shangyundian.cn/api'
 export const UPLOAD_BASE = 'https://wa15.shangyundian.cn/upload/'
+const SITE_CONFIG_KEY = 'gb_site_config'
+
+export function getToken() {
+	try {
+		const u = uni.getStorageSync('gb_user')
+		return (u && u.token) ? u.token : ''
+	} catch (e) {
+		return ''
+	}
+}
+
+function authHeader(extra = {}) {
+	const h = { ...extra }
+	const token = getToken()
+	if (token) h.token = token
+	return h
+}
+
+function toFormBody(data) {
+	return Object.keys(data || {})
+		.filter(k => data[k] !== undefined && data[k] !== null)
+		.map(k => encodeURIComponent(k) + '=' + encodeURIComponent(String(data[k])))
+		.join('&')
+}
 
 // 拼接图片完整地址
 export function imgUrl(path) {
@@ -16,6 +42,7 @@ export function uploadFile(filePath) {
 			url: BASE_URL + '/upload',
 			filePath,
 			name: 'thumb',
+			header: authHeader(),
 			success: (res) => {
 				try {
 					const body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
@@ -36,15 +63,17 @@ export function uploadFile(filePath) {
 }
 
 function request(url, method = 'GET', data = {}, options = {}) {
+	const isForm = options.form === true
+	const isLogin = url === '/login'
 	return new Promise((resolve, reject) => {
 		uni.request({
 			url: BASE_URL + url,
 			method,
-			data,
-			header: {
-				'Content-Type': 'application/json',
+			data: isForm ? toFormBody(data) : data,
+			header: authHeader({
+				'Content-Type': isForm ? 'application/x-www-form-urlencoded' : 'application/json',
 				...(options.header || {})
-			},
+			}),
 			timeout: options.timeout || 15000,
 			success: (res) => {
 				const body = res.data || {}
@@ -73,7 +102,10 @@ export const http = {
 		return request(url, 'GET', params, options)
 	},
 	post(url, data, options) {
-		return request(url, 'POST', data, options)
+		return request(url, 'POST', data, { ...options, form: options && options.form })
+	},
+	postForm(url, data, options) {
+		return request(url, 'POST', data, { ...options, form: true })
 	},
 	put(url, data, options) {
 		return request(url, 'PUT', data, options)
@@ -83,32 +115,111 @@ export const http = {
 	}
 }
 
-// 业务接口
+// 业务接口（Apifox 7 项 + 代码中已有扩展）
 export const api = {
-	// 获取过磅站列表
-	getSites() {
-		return http.get('/sites')
+	login(phone) {
+		return http.postForm('/login', { phone }, { header: {} })
 	},
-	// 创建项目
+	siteConfig() {
+		return http.get('/siteConfig')
+	},
+	goPay(order_no) {
+		return http.get('/goPay', { order_no })
+	},
 	createProject(payload) {
 		return http.post('/createProject', payload)
 	},
-	// 我的/附近项目列表
-	myProjects() {
-		return http.get('/myProject')
+	allocateProject(order_id, allocate) {
+		return http.postForm('/allocateProject', {
+			order_id: String(order_id),
+			allocate: typeof allocate === 'string' ? allocate : JSON.stringify(allocate)
+		})
 	},
-	// 项目详情
 	projectInfo(project_id) {
 		return http.get('/projectInfo', { project_id })
 	},
-	// 提交发货单
-	updateHairInfo(payload) {
-		return http.post('/updateHairInfo', payload)
+	getSites() {
+		return http.get('/sites')
 	},
-	// 提交收货单
+	myProjects() {
+		return http.get('/myProject')
+	},
+	updateHairInfo(payload) {
+		return http.postForm('/updateHairInfo', payload)
+	},
 	updateReceiveInfo(payload) {
-		return http.post('/updateReceiveInfo', payload)
+		return http.postForm('/updateReceiveInfo', payload)
+	},
+	exportSimple(project_id) {
+		return http.get('/exportSimple', { project_id })
+	},
+	exportDetail(project_id) {
+		return http.get('/exportDetail', { project_id })
+	},
+	correctHairInfo(payload) {
+		return http.postForm('/correctHairInfo', payload)
+	},
+	correctReceiveInfo(payload) {
+		return http.postForm('/correctReceiveInfo', payload)
+	},
+	evaluate(project_id, type, score) {
+		return http.postForm('/evaluate', {
+			project_id: String(project_id),
+			type,
+			score: String(score)
+		})
+	},
+	correctResultNum(project_id, result_num) {
+		return http.postForm('/correctResultNum', {
+			project_id: String(project_id),
+			result_num: String(result_num)
+		})
+	},
+	getUserInfo() {
+		return http.get('/getUserInfo')
 	}
+}
+
+/** 轮询项目详情直至已支付（创建项目 → 拉起支付 之后） */
+export async function pollProjectPaid(projectId, maxTry = 30, intervalMs = 2000) {
+	for (let i = 0; i < maxTry; i++) {
+		const res = await api.projectInfo(projectId)
+		const row = res && (res.row || res)
+		if (isProjectPaid(row)) return row
+		await sleep(intervalMs)
+	}
+	throw new Error('支付状态确认超时，请稍后在「我的项目」查看')
+}
+
+export function saveSiteConfig(data) {
+	try {
+		uni.setStorageSync(SITE_CONFIG_KEY, data || {})
+	} catch (e) {}
+}
+
+export function loadSiteConfig() {
+	try {
+		return uni.getStorageSync(SITE_CONFIG_KEY) || null
+	} catch (e) {
+		return null
+	}
+}
+
+/** 解包 siteConfig：接口 data 内可能再嵌套一层 data */
+export function parseSiteConfig(raw) {
+	if (!raw || typeof raw !== 'object') return {}
+	const inner = raw.data
+	if (inner && typeof inner === 'object' && (inner.project_price != null || inner.one_price != null)) {
+		return inner
+	}
+	return raw
+}
+
+/** 项目创建服务费（project_price） */
+export function getProjectPrice(raw, fallback = 200) {
+	const cfg = parseSiteConfig(raw)
+	const n = Number(cfg.project_price)
+	return Number.isFinite(n) && n >= 0 ? n : fallback
 }
 
 export default http

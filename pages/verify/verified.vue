@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="tabs">
 			<text class="tab" :class="{active: tab==='all'}" @tap="tab='all'">总览</text>

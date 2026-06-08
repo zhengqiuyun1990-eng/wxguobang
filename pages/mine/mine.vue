@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="header">
 			<view class="avatar">{{ avatarChar }}</view>
@@ -12,11 +12,6 @@
 
 		<view class="stat-card" v-if="user">
 			<view class="stat-item">
-				<text class="sn">{{ star }}★</text>
-				<text class="sl">服务评分</text>
-			</view>
-			<view class="vline" />
-			<view class="stat-item">
 				<text class="sn">¥{{ user.totalPiece.toFixed(2) }}</text>
 				<text class="sl">累计计件</text>
 			</view>
@@ -29,45 +24,57 @@
 
 		<view class="menu">
 			<view class="m-row" @tap="go('/pages/mine/piecework')">
-				<text class="m-l">💰</text><text class="m-t">我的计件</text><text class="m-r">›</text>
+				<text class="m-l">件</text><text class="m-t">我的计件</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/mine/score')">
-				<text class="m-l">⭐</text><text class="m-t">我的服务评分</text><text class="m-r">›</text>
+				<text class="m-l">评</text><text class="m-t">我的服务评分</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/mine/projects')">
-				<text class="m-l">📦</text><text class="m-t">我的项目</text><text class="m-r">›</text>
+				<text class="m-l">项</text><text class="m-t">我的项目</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/mine/vehicles')">
 				<text class="m-l">车</text><text class="m-t">我的车辆</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/mine/applications')">
-				<text class="m-l">📥</text><text class="m-t">收到的申请</text><text class="m-r">›</text>
+				<text class="m-l">申</text><text class="m-t">收到的申请</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/join/joined')">
-				<text class="m-l">📋</text><text class="m-t">已加入的项目</text><text class="m-r">›</text>
+				<text class="m-l">加</text><text class="m-t">已加入的项目</text><text class="m-r">›</text>
 			</view>
 			<view class="m-row" @tap="go('/pages/mine/service')">
-				<text class="m-l">🎧</text><text class="m-t">客服</text><text class="m-r">›</text>
+				<text class="m-l">服</text><text class="m-t">客服</text><text class="m-r">›</text>
 			</view>
 		</view>
 	</view>
 </template>
 
 <script>
-import { db, rateByScore } from '@/utils/store.js'
+import { db } from '@/utils/store.js'
+import { api } from '@/utils/request.js'
 export default {
 	data() { return { user: null } },
 	computed: {
-		avatarChar() { return this.user ? (this.user.nickname || this.user.phone).slice(-2) : '游' },
-		star() { return this.user ? rateByScore(this.user.score).star : 0 }
+		avatarChar() { return this.user ? (this.user.nickname || this.user.phone).slice(-2) : '游' }
 	},
-	onShow() {
+	async onShow() {
 		this.user = db.currentUser()
-		// 同步最新数据
-		if (this.user) {
-			const fresh = db.allUsers().find(u => u.id === this.user.id)
-			if (fresh) { this.user = fresh; db.setCurrentUser(fresh) }
-		}
+		if (!this.user) return
+		const fresh = db.allUsers().find(u => u.id === this.user.id)
+		if (fresh) { this.user = fresh; db.setCurrentUser(fresh) }
+		try {
+			const info = await api.getUserInfo()
+			if (info) {
+				const next = {
+					...this.user,
+					nickname: info.nickname || info.name || this.user.nickname,
+					score: info.score != null ? info.score : this.user.score,
+					totalPiece: info.total_piece != null ? info.total_piece : (info.totalPiece != null ? info.totalPiece : this.user.totalPiece)
+				}
+				db.setCurrentUser(next)
+				db.upsertUser(next)
+				this.user = next
+			}
+		} catch (e) {}
 	},
 	methods: {
 		goLogin() { uni.navigateTo({ url: '/pages/auth/login' }) },
@@ -116,7 +123,11 @@ export default {
 	display:flex; align-items:center; padding: 28rpx 32rpx; border-bottom: 1rpx solid #f5f5f5;
 }
 .m-row:last-child { border-bottom: none; }
-.m-l { font-size: 36rpx; width: 60rpx; }
-.m-t { flex:1; font-size: 28rpx; color:#333; }
+.m-l {
+	font-size: 28rpx; width: 60rpx; height: 60rpx; border-radius: 12rpx;
+	background: #ECFDF5; color: #16A34A; font-weight: 700;
+	display: flex; align-items: center; justify-content: center;
+}
+.m-t { flex:1; font-size: 28rpx; color:#333; margin-left: 8rpx; }
 .m-r { color: #ccc; font-size: 32rpx; }
 </style>

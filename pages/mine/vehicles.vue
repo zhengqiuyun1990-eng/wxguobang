@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="card add-card">
 			<input class="ipt" placeholder="请输入车牌号" v-model="plate" />
@@ -45,7 +45,7 @@ export default {
 .add-btn { background: #4ADE80; color: #fff; border-radius: 12rpx; font-size: 28rpx; height: 76rpx; line-height: 76rpx; padding: 0 34rpx; }
 .tip { color: #999; font-size: 24rpx; margin: 0 8rpx 20rpx; }
 .empty { text-align: center; color: #bbb; padding: 40rpx 0; }
-.row { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.row { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .row:last-child { border-bottom: none; }
 .plate { flex:1; font-size: 30rpx; font-weight: 700; color:#111; }
 .del { color:#ef4444; font-size: 26rpx; }

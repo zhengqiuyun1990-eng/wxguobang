@@ -14,6 +14,7 @@
 		{ "path": "pages/project/fee", "style": { "navigationBarTitleText": "项目费用" } },
 		{ "path": "pages/project/allocate", "style": { "navigationBarTitleText": "资金分配" } },
 		{ "path": "pages/project/done", "style": { "navigationBarTitleText": "项目创建成功" } },
+		{ "path": "pages/project/rate", "style": { "navigationBarTitleText": "服务评分" } },
 		{ "path": "pages/driver/search", "style": { "navigationBarTitleText": "我是司机" } },
 		{ "path": "pages/driver/project", "style": { "navigationBarTitleText": "项目操作" } },
 		{ "path": "pages/driver/upload", "style": { "navigationBarTitleText": "上传磅单" } },

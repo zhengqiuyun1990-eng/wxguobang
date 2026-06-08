@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="hd">
 			<text class="star">{{ star }}★</text>

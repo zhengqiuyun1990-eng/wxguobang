@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page" v-if="project">
 		<view class="hd">
 			<text class="hd-n">{{ project.name }}</text>
@@ -47,6 +47,8 @@
 
 <script>
 import { db, rateByScore } from '@/utils/store.js'
+import { api } from '@/utils/request.js'
+import { isBlockPending } from '@/utils/api-util.js'
 export default {
 	data() { return { pid: '', role: '', project: null, stat: {pending:0, done:0}, piece: 0, errorBills: [], corrections: 0 } },
 	computed: {
@@ -56,11 +58,39 @@ export default {
 		}
 	},
 	onLoad(q) { this.pid = q.pid; this.role = q.role },
-	onShow() {
-		this.project = db.getProject(this.pid)
-		const bills = db.billsOfProject(this.pid)
+	async onShow() {
+		this.project = db.getProject('P' + this.pid) || db.getProject(this.pid)
+		if (!this.project) {
+			try {
+				const res = await api.projectInfo(this.pid)
+				const row = res && (res.row || res)
+				if (row) {
+					this.project = { id: 'P' + this.pid, remoteId: this.pid, no: this.pid, name: row.title || row.name, allocate: { ship: 0, recv: 0, owner: 0 } }
+				}
+			} catch (e) {}
+		}
+		if (!this.project) return
+		const bills = db.billsOfProject(this.project.id)
 		const u = db.currentUser()
 		let pending = 0, done = 0, piece = 0, errorBills = [], corrections = 0
+		let fromRemote = false
+		try {
+			const info = await api.projectInfo(this.pid)
+			const row = info && (info.row || info)
+			const block = this.role === 'ship' ? row && row.hair : row && row.receive
+			if (block && (block.number || block.net || block['净重'])) {
+				fromRemote = true
+				if (isBlockPending(block)) pending = 1
+				else done = 1
+			}
+		} catch (e) {}
+		if (fromRemote) {
+			this.stat = { pending, done }
+			this.piece = piece
+			this.errorBills = errorBills
+			this.corrections = corrections
+			return
+		}
 		bills.forEach(b => {
 			if (this.role === 'ship') {
 				if (b.type === 'ship') {
@@ -82,7 +112,7 @@ export default {
 		this.corrections = corrections
 	},
 	methods: {
-		goList() { uni.navigateTo({ url: `/pages/verify/list?pid=${this.pid}&role=${this.role}` }) },
+		goList() { uni.navigateTo({ url: `/pages/verify/list?project_id=${this.pid}&role=${this.role}` }) },
 		goVerified() { uni.navigateTo({ url: `/pages/verify/verified?pid=${this.pid}&role=${this.role}` }) },
 		goPiece() { uni.navigateTo({ url: '/pages/mine/piecework' }) },
 		goScore() { uni.navigateTo({ url: '/pages/mine/score' }) },

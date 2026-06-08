@@ -168,6 +168,14 @@ Storage 键前缀 `gb_*`：
 - 命令行构建若存在，输出在 `unpackage/dist/`
 - 用户系统为 Windows；路径含中文「过磅小程序」时注意终端编码
 
+## Git 推送（自动化）
+
+用户说 **推送到 git / 推送代码 / 同步 GitHub** 时：加载个人 skill `git-push`（`~/.cursor/skills/git-push/SKILL.md`）。
+
+- 本项目远程配置：`.cursor/git-push.json`（已指向 `zhengqiuyun1990-eng/wxguobang`）
+- 执行：`powershell -NoProfile -ExecutionPolicy Bypass -File "$env:USERPROFILE\.cursor\skills\git-push\scripts\push.ps1"`
+- 无配置文件时：向用户索要仓库地址并写入 `.cursor/git-push.json`，其他项目同理
+
 ## 已知注意点
 
 - 项目编号：远端返回 `id` 时 `no` 可能为远端 ID；二维码与司机入口使用 `project_id=` 该编号

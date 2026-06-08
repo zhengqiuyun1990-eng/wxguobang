@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<!-- 项目信息 -->
 		<view class="proj-bar" v-if="projectName || projectId">
@@ -20,7 +20,7 @@
 			<view class="ct" style="margin-top: 24rpx;">地址照片（拍照）</view>
 			<view class="img-wrap" @tap="pickPlace">
 				<image v-if="placeImg" :src="placeImg" mode="aspectFill" class="img" />
-				<view v-else class="ph">📷 拍照</view>
+				<view v-else class="ph">拍照</view>
 			</view>
 		</view>
 
@@ -59,8 +59,9 @@
 </template>
 
 <script>
-import { db } from '@/utils/store.js'
+import { requireLogin } from '@/utils/store.js'
 import { api, uploadFile } from '@/utils/request.js'
+import { parseProjectRow } from '@/utils/api-util.js'
 import { getVehicles, addVehicle, removeVehicle } from '@/utils/vehicles.js'
 
 export default {
@@ -75,6 +76,7 @@ export default {
 		plateOptions() { return this.plates.map(p => p) }
 	},
 	async onLoad(q) {
+		if (!requireLogin()) return
 		this.projectId = q.project_id || q.pid || ''
 		if (q.type) this.type = q.type
 		this.fee = Number(q.fee) || 0
@@ -84,9 +86,10 @@ export default {
 		if (this.projectId) {
 			try {
 				const res = await api.projectInfo(this.projectId)
-				if (res && res.row) {
-					this.fee = Number(res.row.driver_fee) || this.fee
-					this.projectName = res.row.title || ''
+				const row = parseProjectRow(res && res.row ? res.row : res)
+				if (row) {
+					this.fee = row.driverFee || this.fee
+					this.projectName = row.title || ''
 				}
 			} catch (e) { /* 后端不可用时用传入的 fee */ }
 		}
@@ -124,6 +127,28 @@ export default {
 		autoNet() {
 			const g = Number(this.form.gross||0), t = Number(this.form.tare||0)
 			this.form.net = +(g - t).toFixed(2)
+		},
+		afterSubmit() {
+			if (this.type === 'recv') {
+				uni.showToast({ title: '上传成功，请评分', icon: 'success' })
+				setTimeout(() => {
+					uni.redirectTo({ url: `/pages/project/rate?project_id=${this.projectId}` })
+				}, 600)
+				return
+			}
+			uni.showModal({
+				title: '发货单已上传',
+				content: '请继续上传收货磅单',
+				confirmText: '去上传收货单',
+				cancelText: '稍后',
+				success: (r) => {
+					if (r.confirm) {
+						uni.redirectTo({ url: `/pages/driver/upload?project_id=${this.projectId}&type=recv` })
+					} else {
+						uni.navigateTo({ url: `/pages/driver/project?id=${this.projectId}` })
+					}
+				}
+			})
 		},
 		async submit() {
 			if (this.submitting) return
@@ -170,15 +195,7 @@ export default {
 				if (this.type === 'ship') await api.updateHairInfo(payload)
 				else await api.updateReceiveInfo(payload)
 				uni.hideLoading()
-				uni.showModal({
-					title: '提交成功',
-					content: '是否返回首页？选择取消可继续留在本页修改数字。',
-					confirmText: '返回首页',
-					cancelText: '继续修改',
-					success: (r) => {
-						if (r.confirm) uni.switchTab({ url: '/pages/index/index' })
-					}
-				})
+				this.afterSubmit()
 			} catch (e) {
 				uni.hideLoading()
 			} finally {
@@ -202,7 +219,7 @@ export default {
 .img-wrap { width: 100%; height: 280rpx; background:#F5F7FA; border-radius: 16rpx; overflow:hidden; display:flex; align-items:center; justify-content:center; }
 .img { width: 100%; height: 100%; }
 .ph { color:#999; font-size: 26rpx; }
-.row { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.row { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .row:last-child { border-bottom: none; }
 .lbl { width: 160rpx; font-size: 28rpx; color: #333; }
 .ipt { flex:1; font-size: 28rpx; }

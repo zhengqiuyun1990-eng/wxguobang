@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="step">第 2 / 4 步 · 项目规格</view>
 		<view class="hint">请添加货物规格区间，例如 0-5、5-10、10-20、20-30</view>
@@ -43,7 +43,7 @@ export default {
 .step { font-size: 24rpx; color:#16A34A; padding: 8rpx 16rpx; background:#ECFDF5; display:inline-block; border-radius: 999px; }
 .hint { color:#888; font-size: 24rpx; margin: 16rpx 0; }
 .card { background:#fff; border-radius: 20rpx; padding: 8rpx 28rpx 24rpx; }
-.spec { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.spec { display:flex; align-items:center; padding: 24rpx 0; border-bottom: 1rpx solid #F5F7FA; }
 .ipt { flex:1; font-size: 28rpx; background:#F5F7FA; border-radius: 12rpx; padding: 16rpx; text-align:center; }
 .dash { padding: 0 16rpx; color:#999; }
 .del { color:#ef4444; padding-left: 16rpx; font-size: 26rpx; }

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page" v-if="project">
 		<view class="hd">
 			<text class="title">对账单 · {{ modeLabel }}</text>
@@ -59,7 +59,7 @@
 		</view>
 
 		<view class="actions">
-			<button class="primary" @tap="print">🖨 打印 / 分享</button>
+			<button class="primary" @tap="print">打印 / 分享</button>
 		</view>
 	</view>
 </template>
@@ -75,45 +75,86 @@ export default {
 		avgRecv() { return this.rows.length ? (this.sum.recvNet / this.rows.length).toFixed(2) : '0.00' }
 	},
 	async onLoad(q) {
-		this.mode = q.mode
-		// 先用本地
+		this.mode = q.mode || 'detail'
 		this.project = db.getProject(q.id)
-		// 尝试从后端拉取（取真实 company 字段）
-		const remoteId = q.id.replace(/^P/, '')
+		const remoteId = String(q.id || '').replace(/^P/, '')
 		try {
 			const res = await api.projectInfo(remoteId)
-			if (res && res.row) {
-				const r = res.row
+			const r = res && (res.row || res)
+			if (r) {
 				this.project = {
 					...(this.project || {}),
-					name: r.title,
-					no: r.id,
+					name: r.title || r.name,
+					no: r.id || remoteId,
 					shipperCompany: r.shipper_company || '',
 					receiverCompany: r.receiver_company || ''
 				}
 			}
 		} catch (e) {}
-		// 本地磅单数据
-		const bills = db.billsOfProject(q.id).filter(b => b.shipVerified && b.recvVerified && b.recv)
-		let sn = 0, rn = 0, abnormal = 0, corrected = 0
-		this.rows = bills.map(b => {
-			const loss = +(Number(b.net) - Number(b.recv.net)).toFixed(2)
-			const pct = b.net > 0 ? (loss / b.net * 100) : 0
-			if (pct > 3) abnormal++
-			if (b.shipCorrected || b.recvCorrected) corrected++
-			sn += Number(b.net); rn += Number(b.recv.net)
-			return {
-				id: b.id, plate: b.plate,
-				sg: b.gross, st: b.tare, sn: b.net,
-				rg: b.recv.gross, rt: b.recv.tare, rn: b.recv.net,
-				loss
-			}
-		})
-		const loss = sn - rn
-		const lossPct = sn > 0 ? (loss / sn * 100).toFixed(2) : '0.00'
-		this.sum = { shipNet: sn, recvNet: rn, loss, lossPct, abnormal, corrected }
+		if (!this.project) {
+			this.project = { id: q.id, no: remoteId, name: '项目#' + remoteId }
+		}
+		const fromApi = await this.loadFromExport(remoteId)
+		if (!fromApi) this.loadFromLocal(q.id)
 	},
 	methods: {
+		async loadFromExport(remoteId) {
+			if (!remoteId || this.mode === 'pro') return false
+			const fn = this.mode === 'simple' ? api.exportSimple : api.exportDetail
+			try {
+				const res = await fn(remoteId)
+				const list = (res && (res.list || res.rows || res.data)) || []
+				if (!Array.isArray(list) || !list.length) return false
+				this.applyRows(list.map((b, i) => this.mapExportRow(b, i)))
+				return true
+			} catch (e) {
+				return false
+			}
+		},
+		mapExportRow(b, i) {
+			const sg = Number(b.ship_gross ?? b.hair_gross ?? b.gross ?? 0)
+			const st = Number(b.ship_tare ?? b.hair_tare ?? b.tare ?? 0)
+			const sn = Number(b.ship_net ?? b.hair_net ?? b.snet ?? b.net ?? 0)
+			const rg = Number(b.recv_gross ?? b.receive_gross ?? 0)
+			const rt = Number(b.recv_tare ?? b.receive_tare ?? 0)
+			const rn = Number(b.recv_net ?? b.receive_net ?? b.rnet ?? 0)
+			const loss = +(sn - rn).toFixed(2)
+			return {
+				id: b.id || i,
+				plate: b.number || b.plate || '-',
+				sg, st, sn, rg, rt, rn, loss,
+				abnormal: sn > 0 && (loss / sn * 100) > 3,
+				corrected: !!(b.corrected || b.is_correct)
+			}
+		},
+		loadFromLocal(pid) {
+			const bills = db.billsOfProject(pid).filter(b => b.shipVerified && b.recvVerified && b.recv)
+			this.applyRows(bills.map(b => {
+				const loss = +(Number(b.net) - Number(b.recv.net)).toFixed(2)
+				const pct = b.net > 0 ? (loss / b.net * 100) : 0
+				return {
+					id: b.id, plate: b.plate,
+					sg: b.gross, st: b.tare, sn: b.net,
+					rg: b.recv.gross, rt: b.recv.tare, rn: b.recv.net,
+					loss,
+					abnormal: pct > 3,
+					corrected: !!(b.shipCorrected || b.recvCorrected)
+				}
+			}))
+		},
+		applyRows(rows) {
+			let sn = 0, rn = 0, abnormal = 0, corrected = 0
+			rows.forEach(r => {
+				sn += Number(r.sn)
+				rn += Number(r.rn)
+				if (r.abnormal) abnormal++
+				if (r.corrected) corrected++
+			})
+			const loss = sn - rn
+			const lossPct = sn > 0 ? (loss / sn * 100).toFixed(2) : '0.00'
+			this.rows = rows
+			this.sum = { shipNet: sn, recvNet: rn, loss, lossPct, abnormal, corrected }
+		},
 		print() { uni.showToast({ title: '已发送至打印机', icon: 'success' }) }
 	}
 }
@@ -133,7 +174,7 @@ export default {
 .tbl { display: inline-block; }
 .th, .tr { display:flex; }
 .th { background:#ECFDF5; }
-.c { display:inline-block; width: 120rpx; padding: 14rpx 8rpx; font-size: 22rpx; text-align:center; color:#333; border-bottom:1rpx solid #f5f5f5; }
+.c { display:inline-block; width: 120rpx; padding: 14rpx 8rpx; font-size: 22rpx; text-align:center; color:#333; border-bottom:1rpx solid #F5F7FA; }
 .c.plate { width: 160rpx; font-weight: 600; }
 .tr .c.hi { color:#ef4444; font-weight: 700; }
 .ct { font-size: 28rpx; font-weight: 700; color:#111; margin-bottom: 12rpx; }

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view class="page">
 		<view class="hint">仅项目负责人可查看 / 打印</view>
 		<view class="empty" v-if="myProjects.length === 0"><text>您不是任何项目的负责人</text></view>
@@ -21,27 +21,30 @@
 </template>
 
 <script>
-import { db } from '@/utils/store.js'
+import { db, requireLogin } from '@/utils/store.js'
 import { api } from '@/utils/request.js'
+import { parseMyProjectList, isProjectOwner } from '@/utils/api-util.js'
 export default {
 	data() { return { myProjects: [] } },
 	async onShow() {
+		if (!requireLogin()) return
 		const u = db.currentUser()
 		if (!u) return
-		// 优先拉后端项目列表
 		try {
 			const res = await api.myProjects()
-			const list = (res && res.list) || []
-			const mapped = list.map(p => ({
-				id: 'P' + p.id, remoteId: p.id, no: p.id,
-				name: p.title,
-				shipperCompany: p.shipper_company || '',
-				receiverCompany: p.receiver_company || '',
-				driverFee: Number(p.driver_fee) || 0,
-				owners: (p.master || []).map(m => ({ name: m.name, phone: m.phone })),
-				ownerId: u.id
-			}))
-			this.myProjects = mapped.filter(p => p.owners.some(o => o.phone === u.phone))
+			this.myProjects = parseMyProjectList(res)
+				.filter(p => isProjectOwner(p, u))
+				.map(p => ({
+					id: 'P' + p.id,
+					remoteId: p.id,
+					no: p.id,
+					name: p.name,
+					shipperCompany: p.shipperCompany,
+					receiverCompany: p.receiverCompany,
+					driverFee: p.driverFee,
+					owners: p.owners,
+					ownerId: u.id
+				}))
 			if (this.myProjects.length > 0) return
 		} catch (e) {}
 		// 后端不可用：回退本地

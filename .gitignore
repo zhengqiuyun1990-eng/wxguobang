@@ -12,3 +12,8 @@ Thumbs.db
 
 # deps (if added later)
 node_modules/
+dist/
+src/
+
+# local UI backup (do not commit)
+_ui_backup/
